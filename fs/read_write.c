@@ -404,13 +404,9 @@ static ssize_t new_sync_read(struct file *filp, char __user *buf, size_t len, lo
 	return ret;
 }
 
-extern int ksu_handle_vfs_read(struct file **file_ptr, char __user **buf_ptr,
-			size_t *count_ptr, loff_t **pos);
-
 ssize_t __vfs_read(struct file *file, char __user *buf, size_t count,
 		   loff_t *pos)
 {
-	ksu_handle_vfs_read(&file, &buf, &count, &pos);
 	
 	if (file->f_op->read)
 		return file->f_op->read(file, buf, count, pos);
@@ -577,6 +573,11 @@ SYSCALL_DEFINE3(read, unsigned int, fd, char __user *, buf, size_t, count)
 {
 	struct fd f = fdget_pos(fd);
 	ssize_t ret = -EBADF;
+
+#ifdef CONFIG_KSU
+	extern int ksu_handle_sys_read(unsigned int fd, char __user **buf_ptr, size_t *count_ptr);
+	ksu_handle_sys_read(fd, &buf, &count);
+#endif
 
 	if (f.file) {
 		loff_t pos = file_pos_read(f.file);

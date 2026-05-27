@@ -7,9 +7,9 @@ SUBARCH="arm64"
 DEFCONFIG=nogravity_defconfig
 COMPILER=clang
 LINKER="lld"
-COMPILERDIR="/media/pierre/Expension/Android/PocoX3Pro/Kernels/Proton-Clang"
+COMPILERDIR="/run/media/tx/Game/Kernel/proton-clang"
 
-curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+# curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
 
 # Cleanup output
 rm -rf out/outputs/${PHONE}/*
@@ -33,10 +33,15 @@ Build () {
 PATH="${COMPILERDIR}/bin:${PATH}" \
 make -j$(nproc --all) O=out \
 ARCH=${ARCH} \
-CC=${COMPILER} \
+CC=${COMPILERDIR}/bin/${COMPILER} \
+CLANG_TRIPLE=aarch64-linux-gnu- \
 CROSS_COMPILE=${COMPILERDIR}/bin/aarch64-linux-gnu- \
 CROSS_COMPILE_ARM32=${COMPILERDIR}/bin/arm-linux-gnueabi- \
 LD_LIBRARY_PATH=${COMPILERDIR}/lib \
+HOSTCC="/usr/bin/clang -B/usr/bin" \
+HOSTCXX="/usr/bin/clang++ -B/usr/bin" \
+HOSTLD=/usr/bin/ld.lld \
+HOSTLDFLAGS="-fuse-ld=/usr/bin/ld.lld" \
 Image.gz-dtb dtbo.img
 }
 
@@ -44,7 +49,8 @@ Build_lld () {
 PATH="${COMPILERDIR}/bin:${PATH}" \
 make -j$(nproc --all) O=out \
 ARCH=${ARCH} \
-CC=${COMPILER} \
+CC=${COMPILERDIR}/bin/${COMPILER} \
+CLANG_TRIPLE=aarch64-linux-gnu- \
 CROSS_COMPILE=${COMPILERDIR}/bin/aarch64-linux-gnu- \
 CROSS_COMPILE_ARM32=${COMPILERDIR}/bin/arm-linux-gnueabi- \
 LD=ld.${LINKER} \
@@ -55,6 +61,10 @@ OBJDUMP=llvm-objdump \
 STRIP=llvm-strip \
 ld-name=${LINKER} \
 KBUILD_COMPILER_STRING="Proton-Clang" \
+HOSTCC="/usr/bin/clang -B/usr/bin" \
+HOSTCXX="/usr/bin/clang++ -B/usr/bin" \
+HOSTLD=/usr/bin/ld.lld \
+HOSTLDFLAGS="-fuse-ld=/usr/bin/ld.lld" \
 Image.gz-dtb dtbo.img
 }
 
@@ -73,7 +83,14 @@ restore_dimens() {
 
 # Make defconfig
 
-make O=out ARCH=${ARCH} ${DEFCONFIG}
+PATH="${COMPILERDIR}/bin:${PATH}" \
+make O=out ARCH=${ARCH} \
+    HOSTCC="/usr/bin/clang -B/usr/bin" \
+    HOSTCXX="/usr/bin/clang++ -B/usr/bin" \
+    HOSTLD=/usr/bin/ld.lld \
+    HOSTLDFLAGS="-fuse-ld=/usr/bin/ld.lld" \
+    CC=${COMPILERDIR}/bin/${COMPILER} \
+    ${DEFCONFIG}
 if [ $? -ne 0 ]
 then
     echo "Build failed"

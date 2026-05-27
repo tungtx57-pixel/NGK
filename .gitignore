@@ -136,3 +136,6 @@ out
 
 # Ignore KernlSu repo
 KernelSU
+
+# Ignore compilation log
+compile.log
